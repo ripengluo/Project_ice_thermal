@@ -1,2 +1,2 @@
 # Project_ice_thermal
-This repository contains necessary scripts and data from the thermal transfer study at Tsinghua Univeristy
+This repository contains necessary scripts and data from the thermal transfer study at Tsinghua Univeristy. Since recently I am trying to revisit all the techniques I used during that time, I need to extract all the useful tools and computational workflow for the thermal conductivity calculations. In this project, I tested multiple MD softwares including LAMMPS, openmx, i-PI. And also, some commonly used forcefields are adopted, such tip4p and Deepmd-kit. So a repository for reproducing everything will be necessary and stand as a good reference for me to conduct further research.
