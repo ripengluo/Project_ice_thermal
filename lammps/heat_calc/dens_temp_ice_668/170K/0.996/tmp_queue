@@ -1,0 +1,5 @@
+       JOBID            NAME  PARTITION STA     TIME TIMELIMI NODES NODELIST        NODELIST(REASON)
+     3179502  0.996_163K_lrp    bigdata RUN     0:11 1-00:00:00     1 cn8443          cn8443
+     3179501  0.996_160K_lrp    bigdata RUN     0:24 1-00:00:00     1 cn8310          cn8310
+     3179500  0.996_150K_lrp    bigdata RUN     0:41 1-00:00:00     1 cn7874          cn7874
+     3179397      neb_hBN_hz    bigdata RUN    24:52 2-00:00:00     1 cn7413          cn7413

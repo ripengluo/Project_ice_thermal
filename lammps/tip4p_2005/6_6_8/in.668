@@ -1,0 +1,39 @@
+# Reference: M. Orsi, Comparative assessment of the ELBA coarse-grained 
+# model for water, Molecular Physics (2014), 112, 1566-1576
+
+units real
+atom_style full
+
+box tilt large
+
+read_data data.668
+include forcefield.TIP4P_2005
+
+variable Nrun equal 1000
+variable Nf equal ${Nrun}/10
+
+variable watMoleMass equal 18.0153 # /(g/mol)
+variable nAvog equal 6.0221415e23 # Avogadro's number
+variable watMoleculeMass equal (${watMoleMass}/${nAvog}) # /(g/molecule)
+variable A3_in_cm3 equal 1e-24 # Angstrom^3 in cm^3
+variable nAtoms equal atoms
+variable nMolecules equal v_nAtoms/3
+
+variable Text equal 100.0
+
+group hydrogen type 1
+group oxygen type 2
+
+velocity all create ${Text} 1234
+
+neighbor 1.0 bin
+neigh_modify every 10 one 10000
+
+timestep 2.0
+
+#minimize 1.0e-4 1.0e-6 100 1000
+#write_data optimized2.data
+fix constrain all shake 1.0e-4 100 0 b 1 a 1
+fix NVT all nvt temp ${Text} ${Text} 10 drag 0.2
+dump        1 all dcd 1000 water.dcd
+run 100000

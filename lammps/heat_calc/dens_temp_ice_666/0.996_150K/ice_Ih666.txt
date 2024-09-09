@@ -1,0 +1,668 @@
+# neighbour list search related settings
+neighbor	1.0 bin
+neigh_modify	every 10 one 10000
+
+# read geometry
+#read_data	${name}.data
+read_restart restarts/restart.${nname}
+read_restart restarts/restart.ice_Ih666.eq.98
+  restoring atom style full from restart
+  triclinic box = (0 0 0) to (26.392 22.8561 43.011) with tilt (-13.196 0 0)
+  2 by 3 by 4 MPI processor grid
+  restoring pair style lj/cut/tip4p/long from restart
+  restoring bond style harmonic from restart
+  restoring angle style harmonic from restart
+  2592 atoms
+  1728 bonds
+  864 angles
+  2 = max # of 1-2 neighbors
+  1 = max # of 1-3 neighbors
+  1 = max # of 1-4 neighbors
+  2 = max # of special neighbors
+  special bonds CPU = 0.000380039 secs
+  read_restart CPU = 0.00236011 secs
+include forcefield.${name}
+include forcefield.ice_Ih666
+# This forcefield file sets a 13-Angstrom cutoff, recommended for liquid-
+# vapor simulations [Vega & de Miguel, J Chem Phys 126:154707 (2007),
+# Vega et al, Faraday Discuss 141:251 (2009)]
+# Note that the original TIP4P/2005 model was run with an 8.5 Angstrom
+# cutoff [Abascal & Vega, J Chem Phys 123:234505 (2005)].
+# Charges and geometry are specified in the "data." file.
+
+mass 1 1.00794 # H
+mass 2 15.9994 # O
+
+pair_style lj/cut/tip4p/long 2 1 1 1 0.1546 9.0 #otype htype btype atype rOM cutoff
+# style tip4p/long is for use with a long-range Coulombic solver (Ewald or PPPM)
+pair_modify tail yes
+kspace_style pppm/tip4p 1.0e-5 #desired relative error in forces
+
+#pair_style lj/cut/coul/cut 9.0
+
+pair_coeff 1 1 0.0 0.0
+pair_coeff 1 2 0.0 0.0
+pair_coeff 2 2 0.18520 3.1589 #epsilon and sigma of O-O
+
+bond_style harmonic
+bond_coeff 1 10000.0 0.9572 #coefficiet for harmonic bond, k=0, bond length=0.9572
+
+angle_style harmonic
+angle_coeff 1 10000.0 104.52 #coeffiecient for harmonic angle, k=0
+
+# time step and output frequency
+# thermo_style custom time temp pe ke etotal
+thermo_style	one
+thermo          1000
+variable dt equal 2.0
+variable T equal 150.0
+timestep	${dt}
+timestep	2
+
+print "seed1 = ${seed1}"
+seed1 = 3221
+print "seed2 = ${seed2}"
+seed2 = 5938
+print "nname = ${nname}"
+nname = ice_Ih666.eq.98
+
+######################################################
+## Equilibration (Langevin dynamics)
+## assign initial velocity
+#velocity 	all create 300.0 ${seed1} mom yes rot yes dist gaussian
+## Langevin thermostat, limited step size to 0.1
+#fix		1 all nve
+## Tstart Tend damp seed
+#fix		2 all langevin 300.0 300.0 10.0 ${seed2}
+#fix     0 all recenter INIT INIT INIT
+#dump        1 all dcd 1000 eq.dcd
+## 20ps equibliration
+#run		20000
+#unfix 0
+#unfix 1
+#unfix 2
+#write_restart 	restart.${name}.eq
+#undump 1
+
+####################################################
+# NVT equilibration
+velocity 	all create $T ${seed1} mom yes rot yes dist gaussian
+velocity 	all create 150 ${seed1} mom yes rot yes dist gaussian
+velocity 	all create 150 3221 mom yes rot yes dist gaussian
+fix constrain all shake 1.0e-4 100 0 b 1 a 1
+  0 = # of size 2 clusters
+  0 = # of size 3 clusters
+  0 = # of size 4 clusters
+  864 = # of frozen angles
+  find clusters CPU = 0.000334024 secs
+fix         NVT all nvt temp $T $T 100.0
+fix         NVT all nvt temp 150 $T 100.0
+fix         NVT all nvt temp 150 150 100.0
+fix center all recenter INIT INIT INIT
+dump        1 all dcd 1000 eq.dcd
+run         10000
+PPPM initialization ...
+  extracting TIP4P info from pair style
+  using 12-bit tables for long-range coulomb (src/kspace.cpp:323)
+  G vector (1/distance) = 0.353717
+  grid = 30 45 45
+  stencil order = 5
+  estimated absolute RMS force accuracy = 0.00243217
+  estimated relative force accuracy = 7.3244e-06
+  using double precision FFTW3
+  3d grid and FFT values/proc = 8712 2700
+Unused restart file global fix info:
+  fix style: nvt, fix ID: 1
+Neighbor list info ...
+  update every 10 steps, delay 10 steps, check yes
+  max neighbors/atom: 10000, page size: 100000
+  master list distance cutoff = 10.3092
+  ghost atom cutoff = 10.3092
+  binsize = 5.1546, bins = 8 5 9
+  1 neighbor lists, perpetual/occasional/extra = 1 0 0
+  (1) pair lj/cut/tip4p/long, perpetual
+      attributes: half, newton on
+      pair build: half/bin/newton/tri
+      stencil: half/bin/3d/newton/tri
+      bin: standard
+Per MPI rank memory allocation (min/avg/max) = 8.496 | 8.513 | 8.525 Mbytes
+Step Temp E_pair E_mol TotEng Press 
+   10000    225.04343   -12097.829            0   -10939.337     9683.996 
+   11000    148.62861   -12090.096            0   -11324.977    8393.8863 
+   12000    145.73876   -12109.158            0   -11358.915    8478.5569 
+   13000    147.68933   -12118.218            0   -11357.935    8355.9023 
+   14000    150.79013   -12090.199            0   -11313.953    7799.2544 
+   15000    152.34942   -12098.909            0   -11314.636    8141.9813 
+   16000    147.62826   -12096.669            0   -11336.699    8099.5505 
+   17000    147.66736   -12118.268            0   -11358.098    8422.7364 
+   18000    152.48453   -12093.681            0   -11308.712    8632.4269 
+   19000    148.75803   -12122.723            0   -11356.937    8212.1222 
+   20000    146.84218   -12095.581            0   -11339.658    8371.6284 
+Loop time of 25.0486 on 24 procs for 10000 steps with 2592 atoms
+
+Performance: 68.986 ns/day, 0.348 hours/ns, 399.224 timesteps/s
+99.9% CPU use with 24 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 10.144     | 10.351     | 10.706     |   4.7 | 41.32
+Bond    | 0.0041475  | 0.0054702  | 0.0074604  |   1.0 |  0.02
+Kspace  | 10.839     | 11.162     | 11.328     |   4.3 | 44.56
+Neigh   | 1.3833     | 1.387      | 1.391      |   0.2 |  5.54
+Comm    | 1.0931     | 1.1442     | 1.2046     |   2.8 |  4.57
+Output  | 0.0051649  | 0.0051723  | 0.0051763  |   0.0 |  0.02
+Modify  | 0.91144    | 0.92749    | 0.94136    |   0.9 |  3.70
+Other   |            | 0.06583    |            |       |  0.26
+
+Nlocal:    108 ave 115 max 103 min
+Histogram: 3 2 3 4 2 4 4 0 1 1
+Nghost:    3238.5 ave 3269 max 3196 min
+Histogram: 1 1 2 2 0 6 5 3 0 4
+Neighs:    24480.4 ave 25991 max 23343 min
+Histogram: 2 2 3 6 3 2 2 1 1 2
+
+Total # of neighbors = 587530
+Ave neighs/atom = 226.671
+Ave special neighs/atom = 2
+Neighbor list builds = 995
+Dangerous builds = 991
+unfix       NVT
+undump      1
+
+#####################################################
+# Define Settings
+compute perke all ke/atom
+compute perpe all pe/atom
+compute perstress all stress/atom NULL virial
+compute flux all heat/flux perke perpe perstress
+# normalize J vector using volume of the box
+# see https://lammps.sandia.gov/doc/compute_heat_flux.html
+variable     Jx equal c_flux[1] #/vol
+variable     Jy equal c_flux[2] #/vol
+variable     Jz equal c_flux[3] #/vol
+
+######################################################
+# production run with NVE
+# reset time step 0.5 fs
+timestep ${dt}
+timestep 2
+# reset time
+reset_timestep 0
+thermo_style custom step time temp pe ke etotal v_Jx v_Jy v_Jz
+thermo_modify line multi format float %15.8e
+thermo 1000
+fix 1 all nve
+fix 2 all ave/correlate 1 5000 10000 c_flux[1] c_flux[2] c_flux[3] type auto file corr.data ave running
+dump 		2 all dcd 1000 nve.dcd
+run 100000 # 400 ps
+PPPM initialization ...
+  extracting TIP4P info from pair style
+  using 12-bit tables for long-range coulomb (src/kspace.cpp:323)
+  G vector (1/distance) = 0.353717
+  grid = 30 45 45
+  stencil order = 5
+  estimated absolute RMS force accuracy = 0.00243217
+  estimated relative force accuracy = 7.3244e-06
+  using double precision FFTW3
+  3d grid and FFT values/proc = 8712 2700
+WARNING: Fix recenter should come after all other integration fixes (src/fix_recenter.cpp:131)
+Per MPI rank memory allocation (min/avg/max) = 13.3 | 13.52 | 13.63 Mbytes
+---------------- Step        0 ----- CPU =      0.0000 (sec) ----------------
+Step     =              0 Time     =  2.00000000e+04 Temp     =  1.46842182e+02 
+PotEng   = -1.20955807e+04 KinEng   =  7.55922841e+02 TotEng   = -1.13396579e+04 
+v_Jx     =  1.11307583e+00 v_Jy     = -6.11538428e+00 v_Jz     = -1.92838792e+00 
+---------------- Step     1000 ----- CPU =      7.1253 (sec) ----------------
+Step     =           1000 Time     =  2.20000000e+04 Temp     =  1.44726761e+02 
+PotEng   = -1.20843087e+04 KinEng   =  7.45032955e+02 TotEng   = -1.13392758e+04 
+v_Jx     =  5.14208985e+00 v_Jy     = -2.39891148e+00 v_Jz     = -1.19174628e+00 
+---------------- Step     2000 ----- CPU =     14.2947 (sec) ----------------
+Step     =           2000 Time     =  2.40000000e+04 Temp     =  1.50170444e+02 
+PotEng   = -1.21126305e+04 KinEng   =  7.73056264e+02 TotEng   = -1.13395743e+04 
+v_Jx     = -2.88662461e+00 v_Jy     = -5.27386810e-01 v_Jz     = -9.44040109e-01 
+---------------- Step     3000 ----- CPU =     21.5137 (sec) ----------------
+Step     =           3000 Time     =  2.60000000e+04 Temp     =  1.50091667e+02 
+PotEng   = -1.21124085e+04 KinEng   =  7.72650734e+02 TotEng   = -1.13397578e+04 
+v_Jx     =  1.47664332e+00 v_Jy     = -1.55475071e+00 v_Jz     =  1.43833616e+00 
+---------------- Step     4000 ----- CPU =     28.7913 (sec) ----------------
+Step     =           4000 Time     =  2.80000000e+04 Temp     =  1.49672967e+02 
+PotEng   = -1.21103597e+04 KinEng   =  7.70495326e+02 TotEng   = -1.13398644e+04 
+v_Jx     = -3.01290486e+00 v_Jy     =  7.62385466e+00 v_Jz     =  2.07919250e+00 
+---------------- Step     5000 ----- CPU =     36.1045 (sec) ----------------
+Step     =           5000 Time     =  3.00000000e+04 Temp     =  1.46505347e+02 
+PotEng   = -1.20934652e+04 KinEng   =  7.54188861e+02 TotEng   = -1.13392764e+04 
+v_Jx     = -5.77850404e+00 v_Jy     = -2.53020077e+00 v_Jz     =  1.36792321e+00 
+---------------- Step     6000 ----- CPU =     43.4396 (sec) ----------------
+Step     =           6000 Time     =  3.20000000e+04 Temp     =  1.45069251e+02 
+PotEng   = -1.20862788e+04 KinEng   =  7.46796042e+02 TotEng   = -1.13394827e+04 
+v_Jx     =  9.98641111e+00 v_Jy     = -5.62118868e-01 v_Jz     = -2.85270987e+00 
+---------------- Step     7000 ----- CPU =     50.7734 (sec) ----------------
+Step     =           7000 Time     =  3.40000000e+04 Temp     =  1.50717655e+02 
+PotEng   = -1.21155630e+04 KinEng   =  7.75873231e+02 TotEng   = -1.13396898e+04 
+v_Jx     = -4.90930524e+00 v_Jy     =  7.95820521e+00 v_Jz     =  7.79945119e+00 
+---------------- Step     8000 ----- CPU =     58.1211 (sec) ----------------
+Step     =           8000 Time     =  3.60000000e+04 Temp     =  1.51064202e+02 
+PotEng   = -1.21172741e+04 KinEng   =  7.77657205e+02 TotEng   = -1.13396169e+04 
+v_Jx     =  1.00863819e+00 v_Jy     =  3.59775856e+00 v_Jz     =  3.38760948e+00 
+---------------- Step     9000 ----- CPU =     65.4713 (sec) ----------------
+Step     =           9000 Time     =  3.80000000e+04 Temp     =  1.47183251e+02 
+PotEng   = -1.20969162e+04 KinEng   =  7.57678618e+02 TotEng   = -1.13392376e+04 
+v_Jx     = -6.51808927e+00 v_Jy     = -3.74123236e+00 v_Jz     = -3.24597692e+00 
+---------------- Step    10000 ----- CPU =     72.8062 (sec) ----------------
+Step     =          10000 Time     =  4.00000000e+04 Temp     =  1.48178506e+02 
+PotEng   = -1.21022280e+04 KinEng   =  7.62802051e+02 TotEng   = -1.13394259e+04 
+v_Jx     =  4.29589964e-01 v_Jy     =  2.24008543e+00 v_Jz     = -2.09487829e+00 
+---------------- Step    11000 ----- CPU =     80.1409 (sec) ----------------
+Step     =          11000 Time     =  4.20000000e+04 Temp     =  1.50219160e+02 
+PotEng   = -1.21129129e+04 KinEng   =  7.73307048e+02 TotEng   = -1.13396059e+04 
+v_Jx     = -2.16922554e+00 v_Jy     =  5.41628425e+00 v_Jz     = -4.92372092e+00 
+---------------- Step    12000 ----- CPU =     87.4818 (sec) ----------------
+Step     =          12000 Time     =  4.40000000e+04 Temp     =  1.48128662e+02 
+PotEng   = -1.21017390e+04 KinEng   =  7.62545461e+02 TotEng   = -1.13391936e+04 
+v_Jx     =  9.27785619e+00 v_Jy     = -4.36230634e+00 v_Jz     =  6.58661195e+00 
+---------------- Step    13000 ----- CPU =     94.8203 (sec) ----------------
+Step     =          13000 Time     =  4.60000000e+04 Temp     =  1.49259761e+02 
+PotEng   = -1.21077364e+04 KinEng   =  7.68368199e+02 TotEng   = -1.13393682e+04 
+v_Jx     =  3.46548606e+00 v_Jy     = -6.51749847e-01 v_Jz     = -3.98466177e+00 
+---------------- Step    14000 ----- CPU =    102.1618 (sec) ----------------
+Step     =          14000 Time     =  4.80000000e+04 Temp     =  1.48840945e+02 
+PotEng   = -1.21053674e+04 KinEng   =  7.66212190e+02 TotEng   = -1.13391552e+04 
+v_Jx     =  7.20103543e+00 v_Jy     =  1.42923698e-01 v_Jz     =  3.56083362e+00 
+---------------- Step    15000 ----- CPU =    109.5073 (sec) ----------------
+Step     =          15000 Time     =  5.00000000e+04 Temp     =  1.45890589e+02 
+PotEng   = -1.20901935e+04 KinEng   =  7.51024174e+02 TotEng   = -1.13391693e+04 
+v_Jx     =  6.18902067e+00 v_Jy     = -4.35413013e+00 v_Jz     =  4.70788378e-01 
+---------------- Step    16000 ----- CPU =    116.8470 (sec) ----------------
+Step     =          16000 Time     =  5.20000000e+04 Temp     =  1.49193973e+02 
+PotEng   = -1.21072273e+04 KinEng   =  7.68029533e+02 TotEng   = -1.13391977e+04 
+v_Jx     =  4.10776193e+00 v_Jy     =  4.84173306e+00 v_Jz     = -5.65787327e+00 
+---------------- Step    17000 ----- CPU =    124.3012 (sec) ----------------
+Step     =          17000 Time     =  5.40000000e+04 Temp     =  1.47006751e+02 
+PotEng   = -1.20958120e+04 KinEng   =  7.56770019e+02 TotEng   = -1.13390420e+04 
+v_Jx     =  1.90047426e+00 v_Jy     = -1.42343079e+00 v_Jz     =  1.90744255e+00 
+---------------- Step    18000 ----- CPU =    131.6396 (sec) ----------------
+Step     =          18000 Time     =  5.60000000e+04 Temp     =  1.49233862e+02 
+PotEng   = -1.21076873e+04 KinEng   =  7.68234872e+02 TotEng   = -1.13394524e+04 
+v_Jx     =  6.27829142e+00 v_Jy     =  1.50221024e+00 v_Jz     = -2.45778426e+00 
+---------------- Step    19000 ----- CPU =    138.9699 (sec) ----------------
+Step     =          19000 Time     =  5.80000000e+04 Temp     =  1.49410249e+02 
+PotEng   = -1.21083772e+04 KinEng   =  7.69142890e+02 TotEng   = -1.13392343e+04 
+v_Jx     =  4.73470699e-01 v_Jy     = -1.03351073e+00 v_Jz     = -5.87359535e+00 
+---------------- Step    20000 ----- CPU =    146.3177 (sec) ----------------
+Step     =          20000 Time     =  6.00000000e+04 Temp     =  1.48425050e+02 
+PotEng   = -1.21030947e+04 KinEng   =  7.64071224e+02 TotEng   = -1.13390235e+04 
+v_Jx     =  1.55694123e+00 v_Jy     =  2.47448933e+00 v_Jz     =  5.19159750e+00 
+---------------- Step    21000 ----- CPU =    153.6471 (sec) ----------------
+Step     =          21000 Time     =  6.20000000e+04 Temp     =  1.52125968e+02 
+PotEng   = -1.21221008e+04 KinEng   =  7.83123026e+02 TotEng   = -1.13389778e+04 
+v_Jx     =  2.13645300e+00 v_Jy     =  2.27029993e+00 v_Jz     =  1.16760608e+00 
+---------------- Step    22000 ----- CPU =    160.9807 (sec) ----------------
+Step     =          22000 Time     =  6.40000000e+04 Temp     =  1.47868554e+02 
+PotEng   = -1.21002783e+04 KinEng   =  7.61206461e+02 TotEng   = -1.13390719e+04 
+v_Jx     = -3.03986624e+00 v_Jy     =  3.72928595e-01 v_Jz     =  4.12133220e+00 
+---------------- Step    23000 ----- CPU =    168.3172 (sec) ----------------
+Step     =          23000 Time     =  6.60000000e+04 Temp     =  1.49522516e+02 
+PotEng   = -1.21088907e+04 KinEng   =  7.69720826e+02 TotEng   = -1.13391699e+04 
+v_Jx     =  5.32738692e-01 v_Jy     =  5.45061430e+00 v_Jz     =  3.12727380e+00 
+---------------- Step    24000 ----- CPU =    175.6674 (sec) ----------------
+Step     =          24000 Time     =  6.80000000e+04 Temp     =  1.48366074e+02 
+PotEng   = -1.21027286e+04 KinEng   =  7.63767620e+02 TotEng   = -1.13389610e+04 
+v_Jx     =  8.87603128e+00 v_Jy     =  5.78559333e+00 v_Jz     = -2.25365278e+00 
+---------------- Step    25000 ----- CPU =    183.0139 (sec) ----------------
+Step     =          25000 Time     =  7.00000000e+04 Temp     =  1.50438949e+02 
+PotEng   = -1.21136895e+04 KinEng   =  7.74438493e+02 TotEng   = -1.13392510e+04 
+v_Jx     =  6.31158751e+00 v_Jy     = -3.87493753e+00 v_Jz     =  1.57396682e+00 
+---------------- Step    26000 ----- CPU =    190.3644 (sec) ----------------
+Step     =          26000 Time     =  7.20000000e+04 Temp     =  1.44133621e+02 
+PotEng   = -1.20806985e+04 KinEng   =  7.41979552e+02 TotEng   = -1.13387190e+04 
+v_Jx     =  6.01927740e+00 v_Jy     = -1.36045080e+00 v_Jz     = -4.77585870e+00 
+---------------- Step    27000 ----- CPU =    197.6949 (sec) ----------------
+Step     =          27000 Time     =  7.40000000e+04 Temp     =  1.48912125e+02 
+PotEng   = -1.21057327e+04 KinEng   =  7.66578615e+02 TotEng   = -1.13391541e+04 
+v_Jx     =  4.25136766e+00 v_Jy     = -5.94652163e-01 v_Jz     =  5.49849538e-01 
+---------------- Step    28000 ----- CPU =    205.0424 (sec) ----------------
+Step     =          28000 Time     =  7.60000000e+04 Temp     =  1.50891604e+02 
+PotEng   = -1.21161180e+04 KinEng   =  7.76768695e+02 TotEng   = -1.13393493e+04 
+v_Jx     = -8.30187395e+00 v_Jy     = -1.69569463e+00 v_Jz     = -2.64991687e+00 
+---------------- Step    29000 ----- CPU =    212.3712 (sec) ----------------
+Step     =          29000 Time     =  7.80000000e+04 Temp     =  1.49929944e+02 
+PotEng   = -1.21107729e+04 KinEng   =  7.71818207e+02 TotEng   = -1.13389547e+04 
+v_Jx     =  7.29727636e+00 v_Jy     =  1.76010453e+00 v_Jz     =  5.72962186e+00 
+---------------- Step    30000 ----- CPU =    219.7307 (sec) ----------------
+Step     =          30000 Time     =  8.00000000e+04 Temp     =  1.49116647e+02 
+PotEng   = -1.21067964e+04 KinEng   =  7.67631468e+02 TotEng   = -1.13391649e+04 
+v_Jx     =  2.29828217e+00 v_Jy     = -3.77190287e-01 v_Jz     = -1.54633154e+00 
+---------------- Step    31000 ----- CPU =    227.0539 (sec) ----------------
+Step     =          31000 Time     =  8.20000000e+04 Temp     =  1.50101946e+02 
+PotEng   = -1.21117445e+04 KinEng   =  7.72703649e+02 TotEng   = -1.13390409e+04 
+v_Jx     = -3.16207254e+00 v_Jy     = -1.94193060e+00 v_Jz     = -2.25054498e+00 
+---------------- Step    32000 ----- CPU =    234.3984 (sec) ----------------
+Step     =          32000 Time     =  8.40000000e+04 Temp     =  1.49241694e+02 
+PotEng   = -1.21072143e+04 KinEng   =  7.68275193e+02 TotEng   = -1.13389391e+04 
+v_Jx     =  3.92845435e-01 v_Jy     =  3.81144537e+00 v_Jz     =  4.33914875e+00 
+---------------- Step    33000 ----- CPU =    241.7443 (sec) ----------------
+Step     =          33000 Time     =  8.60000000e+04 Temp     =  1.52340120e+02 
+PotEng   = -1.21232185e+04 KinEng   =  7.84225451e+02 TotEng   = -1.13389930e+04 
+v_Jx     =  2.76551260e+00 v_Jy     = -3.75544162e+00 v_Jz     =  1.06138999e+00 
+---------------- Step    34000 ----- CPU =    249.0945 (sec) ----------------
+Step     =          34000 Time     =  8.80000000e+04 Temp     =  1.49226860e+02 
+PotEng   = -1.21071211e+04 KinEng   =  7.68198827e+02 TotEng   = -1.13389223e+04 
+v_Jx     =  3.84234988e+00 v_Jy     =  6.23411823e+00 v_Jz     =  2.32816573e+00 
+---------------- Step    35000 ----- CPU =    256.4208 (sec) ----------------
+Step     =          35000 Time     =  9.00000000e+04 Temp     =  1.46766847e+02 
+PotEng   = -1.20942056e+04 KinEng   =  7.55535026e+02 TotEng   = -1.13386705e+04 
+v_Jx     =  5.44693374e+00 v_Jy     =  2.51006648e+00 v_Jz     =  2.11587836e+00 
+---------------- Step    36000 ----- CPU =    263.7630 (sec) ----------------
+Step     =          36000 Time     =  9.20000000e+04 Temp     =  1.51399572e+02 
+PotEng   = -1.21183426e+04 KinEng   =  7.79383642e+02 TotEng   = -1.13389589e+04 
+v_Jx     = -1.32592697e+00 v_Jy     = -2.00565379e+00 v_Jz     = -1.72267191e+00 
+---------------- Step    37000 ----- CPU =    271.0933 (sec) ----------------
+Step     =          37000 Time     =  9.40000000e+04 Temp     =  1.53639083e+02 
+PotEng   = -1.21300095e+04 KinEng   =  7.90912330e+02 TotEng   = -1.13390972e+04 
+v_Jx     =  1.00861093e+00 v_Jy     = -5.14385040e+00 v_Jz     =  2.38362864e+00 
+---------------- Step    38000 ----- CPU =    278.4167 (sec) ----------------
+Step     =          38000 Time     =  9.60000000e+04 Temp     =  1.53485364e+02 
+PotEng   = -1.21292499e+04 KinEng   =  7.90121007e+02 TotEng   = -1.13391289e+04 
+v_Jx     = -2.62451221e+00 v_Jy     = -3.06037637e+00 v_Jz     =  9.40426376e-01 
+---------------- Step    39000 ----- CPU =    285.7385 (sec) ----------------
+Step     =          39000 Time     =  9.80000000e+04 Temp     =  1.48348444e+02 
+PotEng   = -1.21024746e+04 KinEng   =  7.63676864e+02 TotEng   = -1.13387977e+04 
+v_Jx     =  1.61302271e+00 v_Jy     = -9.54006203e-01 v_Jz     =  2.95292708e+00 
+---------------- Step    40000 ----- CPU =    293.1019 (sec) ----------------
+Step     =          40000 Time     =  1.00000000e+05 Temp     =  1.44373631e+02 
+PotEng   = -1.20815633e+04 KinEng   =  7.43215089e+02 TotEng   = -1.13383482e+04 
+v_Jx     = -4.47652150e+00 v_Jy     =  1.78197615e+00 v_Jz     =  5.31241661e+00 
+---------------- Step    41000 ----- CPU =    300.4515 (sec) ----------------
+Step     =          41000 Time     =  1.02000000e+05 Temp     =  1.49290533e+02 
+PotEng   = -1.21072646e+04 KinEng   =  7.68526605e+02 TotEng   = -1.13387380e+04 
+v_Jx     =  4.53070625e+00 v_Jy     =  1.00702778e+00 v_Jz     = -2.39019243e+00 
+---------------- Step    42000 ----- CPU =    307.7827 (sec) ----------------
+Step     =          42000 Time     =  1.04000000e+05 Temp     =  1.52518751e+02 
+PotEng   = -1.21244748e+04 KinEng   =  7.85145018e+02 TotEng   = -1.13393298e+04 
+v_Jx     = -5.95185714e+00 v_Jy     =  1.76191625e+00 v_Jz     = -6.38558197e-01 
+---------------- Step    43000 ----- CPU =    315.1111 (sec) ----------------
+Step     =          43000 Time     =  1.06000000e+05 Temp     =  1.46769753e+02 
+PotEng   = -1.20940419e+04 KinEng   =  7.55549986e+02 TotEng   = -1.13384919e+04 
+v_Jx     =  3.47765372e+00 v_Jy     = -5.98447325e-01 v_Jz     =  6.47553550e+00 
+---------------- Step    44000 ----- CPU =    322.5784 (sec) ----------------
+Step     =          44000 Time     =  1.08000000e+05 Temp     =  1.50106265e+02 
+PotEng   = -1.21114988e+04 KinEng   =  7.72725881e+02 TotEng   = -1.13387729e+04 
+v_Jx     = -5.22136963e+00 v_Jy     =  2.75375896e+00 v_Jz     =  6.18057584e+00 
+---------------- Step    45000 ----- CPU =    329.9261 (sec) ----------------
+Step     =          45000 Time     =  1.10000000e+05 Temp     =  1.49550285e+02 
+PotEng   = -1.21084501e+04 KinEng   =  7.69863774e+02 TotEng   = -1.13385864e+04 
+v_Jx     =  6.84721999e+00 v_Jy     =  3.18308947e+00 v_Jz     =  3.08482723e+00 
+---------------- Step    46000 ----- CPU =    337.2705 (sec) ----------------
+Step     =          46000 Time     =  1.12000000e+05 Temp     =  1.50358018e+02 
+PotEng   = -1.21127007e+04 KinEng   =  7.74021871e+02 TotEng   = -1.13386788e+04 
+v_Jx     = -3.85056660e+00 v_Jy     = -3.55777777e+00 v_Jz     =  2.55203931e-02 
+---------------- Step    47000 ----- CPU =    344.6189 (sec) ----------------
+Step     =          47000 Time     =  1.14000000e+05 Temp     =  1.46974335e+02 
+PotEng   = -1.20950505e+04 KinEng   =  7.56603147e+02 TotEng   = -1.13384473e+04 
+v_Jx     = -1.06493760e-01 v_Jy     =  5.11938467e+00 v_Jz     =  1.91936126e+00 
+---------------- Step    48000 ----- CPU =    351.9659 (sec) ----------------
+Step     =          48000 Time     =  1.16000000e+05 Temp     =  1.49873320e+02 
+PotEng   = -1.21102358e+04 KinEng   =  7.71526711e+02 TotEng   = -1.13387090e+04 
+v_Jx     =  2.38523236e+00 v_Jy     = -1.97572043e+00 v_Jz     = -7.90108440e-01 
+---------------- Step    49000 ----- CPU =    359.3034 (sec) ----------------
+Step     =          49000 Time     =  1.18000000e+05 Temp     =  1.49739377e+02 
+PotEng   = -1.21092941e+04 KinEng   =  7.70837194e+02 TotEng   = -1.13384569e+04 
+v_Jx     =  3.76798063e+00 v_Jy     =  4.92501326e+00 v_Jz     = -3.16485218e+00 
+---------------- Step    50000 ----- CPU =    366.6512 (sec) ----------------
+Step     =          50000 Time     =  1.20000000e+05 Temp     =  1.43451618e+02 
+PotEng   = -1.20769097e+04 KinEng   =  7.38468699e+02 TotEng   = -1.13384410e+04 
+v_Jx     = -4.97433122e+00 v_Jy     =  1.95738951e+00 v_Jz     =  2.62659061e+00 
+---------------- Step    51000 ----- CPU =    373.9884 (sec) ----------------
+Step     =          51000 Time     =  1.22000000e+05 Temp     =  1.50101169e+02 
+PotEng   = -1.21110563e+04 KinEng   =  7.72699647e+02 TotEng   = -1.13383566e+04 
+v_Jx     =  1.26807209e+00 v_Jy     =  2.24274054e+00 v_Jz     =  1.70904726e+00 
+---------------- Step    52000 ----- CPU =    381.3186 (sec) ----------------
+Step     =          52000 Time     =  1.24000000e+05 Temp     =  1.46640626e+02 
+PotEng   = -1.20934178e+04 KinEng   =  7.54885260e+02 TotEng   = -1.13385326e+04 
+v_Jx     = -7.94307504e+00 v_Jy     = -1.30068636e-01 v_Jz     =  1.86558321e+00 
+---------------- Step    53000 ----- CPU =    388.6528 (sec) ----------------
+Step     =          53000 Time     =  1.26000000e+05 Temp     =  1.47060641e+02 
+PotEng   = -1.20953580e+04 KinEng   =  7.57047439e+02 TotEng   = -1.13383106e+04 
+v_Jx     = -9.58227485e-01 v_Jy     = -4.19122841e+00 v_Jz     =  2.06620024e+00 
+---------------- Step    54000 ----- CPU =    395.9786 (sec) ----------------
+Step     =          54000 Time     =  1.28000000e+05 Temp     =  1.45450987e+02 
+PotEng   = -1.20870042e+04 KinEng   =  7.48761167e+02 TotEng   = -1.13382430e+04 
+v_Jx     =  2.20716249e+00 v_Jy     =  3.03510687e+00 v_Jz     =  3.32160705e+00 
+---------------- Step    55000 ----- CPU =    403.3186 (sec) ----------------
+Step     =          55000 Time     =  1.30000000e+05 Temp     =  1.51562443e+02 
+PotEng   = -1.21187568e+04 KinEng   =  7.80222080e+02 TotEng   = -1.13385347e+04 
+v_Jx     = -1.75082332e+00 v_Jy     =  1.18760727e+00 v_Jz     = -3.59211659e+00 
+---------------- Step    56000 ----- CPU =    410.6472 (sec) ----------------
+Step     =          56000 Time     =  1.32000000e+05 Temp     =  1.49414795e+02 
+PotEng   = -1.21075887e+04 KinEng   =  7.69166289e+02 TotEng   = -1.13384224e+04 
+v_Jx     = -2.06763007e+00 v_Jy     =  1.12427939e+00 v_Jz     = -1.68336182e+00 
+---------------- Step    57000 ----- CPU =    418.0067 (sec) ----------------
+Step     =          57000 Time     =  1.34000000e+05 Temp     =  1.50491816e+02 
+PotEng   = -1.21132693e+04 KinEng   =  7.74710644e+02 TotEng   = -1.13385586e+04 
+v_Jx     =  1.76315223e+00 v_Jy     = -1.97754347e-01 v_Jz     = -6.59431828e+00 
+---------------- Step    58000 ----- CPU =    425.3508 (sec) ----------------
+Step     =          58000 Time     =  1.36000000e+05 Temp     =  1.51120613e+02 
+PotEng   = -1.21164402e+04 KinEng   =  7.77947600e+02 TotEng   = -1.13384926e+04 
+v_Jx     =  7.07954040e+00 v_Jy     =  2.30980711e+00 v_Jz     =  2.02151929e+00 
+---------------- Step    59000 ----- CPU =    432.6914 (sec) ----------------
+Step     =          59000 Time     =  1.38000000e+05 Temp     =  1.48750664e+02 
+PotEng   = -1.21042364e+04 KinEng   =  7.65747438e+02 TotEng   = -1.13384889e+04 
+v_Jx     = -1.34613507e+00 v_Jy     =  3.36336714e-02 v_Jz     = -9.72959080e-01 
+---------------- Step    60000 ----- CPU =    440.0309 (sec) ----------------
+Step     =          60000 Time     =  1.40000000e+05 Temp     =  1.47918419e+02 
+PotEng   = -1.20997441e+04 KinEng   =  7.61463158e+02 TotEng   = -1.13382810e+04 
+v_Jx     =  2.05211913e+00 v_Jy     =  3.90570648e+00 v_Jz     = -6.16613334e+00 
+---------------- Step    61000 ----- CPU =    447.4003 (sec) ----------------
+Step     =          61000 Time     =  1.42000000e+05 Temp     =  1.45750004e+02 
+PotEng   = -1.20884319e+04 KinEng   =  7.50300463e+02 TotEng   = -1.13381314e+04 
+v_Jx     = -1.32553355e+00 v_Jy     = -4.62036138e-01 v_Jz     =  1.05721338e+00 
+---------------- Step    62000 ----- CPU =    454.7251 (sec) ----------------
+Step     =          62000 Time     =  1.44000000e+05 Temp     =  1.44961476e+02 
+PotEng   = -1.20846064e+04 KinEng   =  7.46241234e+02 TotEng   = -1.13383652e+04 
+v_Jx     =  5.08127080e+00 v_Jy     =  2.77266049e+00 v_Jz     = -7.07700725e+00 
+---------------- Step    63000 ----- CPU =    462.0577 (sec) ----------------
+Step     =          63000 Time     =  1.46000000e+05 Temp     =  1.45279700e+02 
+PotEng   = -1.20859516e+04 KinEng   =  7.47879405e+02 TotEng   = -1.13380722e+04 
+v_Jx     =  2.79454935e+00 v_Jy     =  4.42760786e+00 v_Jz     = -1.93268252e+00 
+---------------- Step    64000 ----- CPU =    469.3906 (sec) ----------------
+Step     =          64000 Time     =  1.48000000e+05 Temp     =  1.53582716e+02 
+PotEng   = -1.21292184e+04 KinEng   =  7.90622162e+02 TotEng   = -1.13385962e+04 
+v_Jx     =  2.03922941e+00 v_Jy     =  1.38718783e+00 v_Jz     =  1.65575494e+00 
+---------------- Step    65000 ----- CPU =    476.7356 (sec) ----------------
+Step     =          65000 Time     =  1.50000000e+05 Temp     =  1.46229668e+02 
+PotEng   = -1.20911587e+04 KinEng   =  7.52769706e+02 TotEng   = -1.13383890e+04 
+v_Jx     =  1.65943091e+00 v_Jy     =  7.20018562e-01 v_Jz     =  6.47102118e+00 
+---------------- Step    66000 ----- CPU =    484.0782 (sec) ----------------
+Step     =          66000 Time     =  1.52000000e+05 Temp     =  1.50536179e+02 
+PotEng   = -1.21132569e+04 KinEng   =  7.74939018e+02 TotEng   = -1.13383179e+04 
+v_Jx     = -5.55661816e+00 v_Jy     = -1.44927181e-01 v_Jz     =  3.52024845e+00 
+---------------- Step    67000 ----- CPU =    491.4196 (sec) ----------------
+Step     =          67000 Time     =  1.54000000e+05 Temp     =  1.50798101e+02 
+PotEng   = -1.21144425e+04 KinEng   =  7.76287354e+02 TotEng   = -1.13381551e+04 
+v_Jx     =  8.66510841e+00 v_Jy     =  8.76339960e-01 v_Jz     =  4.85685610e+00 
+---------------- Step    68000 ----- CPU =    498.7495 (sec) ----------------
+Step     =          68000 Time     =  1.56000000e+05 Temp     =  1.50323277e+02 
+PotEng   = -1.21122991e+04 KinEng   =  7.73843028e+02 TotEng   = -1.13384561e+04 
+v_Jx     =  4.52223206e+00 v_Jy     =  8.22507461e-01 v_Jz     =  1.87845749e+00 
+---------------- Step    69000 ----- CPU =    506.0916 (sec) ----------------
+Step     =          69000 Time     =  1.58000000e+05 Temp     =  1.45346642e+02 
+PotEng   = -1.20863362e+04 KinEng   =  7.48224011e+02 TotEng   = -1.13381122e+04 
+v_Jx     =  5.38566114e+00 v_Jy     =  7.59741521e+00 v_Jz     =  5.03606808e+00 
+---------------- Step    70000 ----- CPU =    513.4277 (sec) ----------------
+Step     =          70000 Time     =  1.60000000e+05 Temp     =  1.47020180e+02 
+PotEng   = -1.20948436e+04 KinEng   =  7.56839149e+02 TotEng   = -1.13380045e+04 
+v_Jx     = -3.37001000e+00 v_Jy     = -1.67518588e+00 v_Jz     =  1.01055762e+00 
+---------------- Step    71000 ----- CPU =    520.8885 (sec) ----------------
+Step     =          71000 Time     =  1.62000000e+05 Temp     =  1.47004515e+02 
+PotEng   = -1.20949455e+04 KinEng   =  7.56758509e+02 TotEng   = -1.13381870e+04 
+v_Jx     = -6.92203463e+00 v_Jy     =  8.87499887e-01 v_Jz     =  7.25992471e+00 
+---------------- Step    72000 ----- CPU =    528.2255 (sec) ----------------
+Step     =          72000 Time     =  1.64000000e+05 Temp     =  1.49060476e+02 
+PotEng   = -1.21057477e+04 KinEng   =  7.67342304e+02 TotEng   = -1.13384054e+04 
+v_Jx     =  5.21472843e+00 v_Jy     = -8.46642728e-02 v_Jz     = -2.35059822e+00 
+---------------- Step    73000 ----- CPU =    535.6027 (sec) ----------------
+Step     =          73000 Time     =  1.66000000e+05 Temp     =  1.47044924e+02 
+PotEng   = -1.20948646e+04 KinEng   =  7.56966528e+02 TotEng   = -1.13378980e+04 
+v_Jx     = -5.94939204e+00 v_Jy     = -1.56430650e+00 v_Jz     = -1.66129862e+00 
+---------------- Step    74000 ----- CPU =    542.9160 (sec) ----------------
+Step     =          74000 Time     =  1.68000000e+05 Temp     =  1.46139657e+02 
+PotEng   = -1.20904088e+04 KinEng   =  7.52306340e+02 TotEng   = -1.13381025e+04 
+v_Jx     = -5.67883547e+00 v_Jy     = -2.45691765e+00 v_Jz     = -2.89437785e+00 
+---------------- Step    75000 ----- CPU =    550.2495 (sec) ----------------
+Step     =          75000 Time     =  1.70000000e+05 Temp     =  1.46960928e+02 
+PotEng   = -1.20946906e+04 KinEng   =  7.56534127e+02 TotEng   = -1.13381564e+04 
+v_Jx     = -1.33811303e+00 v_Jy     = -5.12258512e+00 v_Jz     = -2.05998768e+00 
+---------------- Step    76000 ----- CPU =    557.5681 (sec) ----------------
+Step     =          76000 Time     =  1.72000000e+05 Temp     =  1.44125184e+02 
+PotEng   = -1.20800170e+04 KinEng   =  7.41936121e+02 TotEng   = -1.13380809e+04 
+v_Jx     =  9.52152726e-02 v_Jy     = -2.65332301e+00 v_Jz     =  7.22613826e+00 
+---------------- Step    77000 ----- CPU =    564.9049 (sec) ----------------
+Step     =          77000 Time     =  1.74000000e+05 Temp     =  1.48633815e+02 
+PotEng   = -1.21034635e+04 KinEng   =  7.65145918e+02 TotEng   = -1.13383176e+04 
+v_Jx     =  6.40848113e+00 v_Jy     =  6.50701019e+00 v_Jz     =  2.59609619e+00 
+---------------- Step    78000 ----- CPU =    572.2397 (sec) ----------------
+Step     =          78000 Time     =  1.76000000e+05 Temp     =  1.50477866e+02 
+PotEng   = -1.21127072e+04 KinEng   =  7.74638830e+02 TotEng   = -1.13380684e+04 
+v_Jx     = -2.12616722e+00 v_Jy     = -1.08558270e+00 v_Jz     =  1.73344533e-01 
+---------------- Step    79000 ----- CPU =    579.5830 (sec) ----------------
+Step     =          79000 Time     =  1.78000000e+05 Temp     =  1.47919014e+02 
+PotEng   = -1.20990523e+04 KinEng   =  7.61466220e+02 TotEng   = -1.13375860e+04 
+v_Jx     = -7.27878113e+00 v_Jy     =  2.81601490e+00 v_Jz     =  3.93635396e+00 
+---------------- Step    80000 ----- CPU =    586.9426 (sec) ----------------
+Step     =          80000 Time     =  1.80000000e+05 Temp     =  1.46531297e+02 
+PotEng   = -1.20918992e+04 KinEng   =  7.54322452e+02 TotEng   = -1.13375767e+04 
+v_Jx     = -1.74164586e+00 v_Jy     =  2.92778982e-01 v_Jz     =  1.73950081e+00 
+---------------- Step    81000 ----- CPU =    594.2865 (sec) ----------------
+Step     =          81000 Time     =  1.82000000e+05 Temp     =  1.54184676e+02 
+PotEng   = -1.21321127e+04 KinEng   =  7.93720966e+02 TotEng   = -1.13383917e+04 
+v_Jx     = -3.28529403e+00 v_Jy     =  2.77399709e+00 v_Jz     = -9.05389050e-01 
+---------------- Step    82000 ----- CPU =    601.6292 (sec) ----------------
+Step     =          82000 Time     =  1.84000000e+05 Temp     =  1.49749233e+02 
+PotEng   = -1.21090992e+04 KinEng   =  7.70887928e+02 TotEng   = -1.13382112e+04 
+v_Jx     =  1.13477379e+01 v_Jy     = -7.76284725e+00 v_Jz     =  3.98242295e+00 
+---------------- Step    83000 ----- CPU =    608.9715 (sec) ----------------
+Step     =          83000 Time     =  1.86000000e+05 Temp     =  1.51132277e+02 
+PotEng   = -1.21157906e+04 KinEng   =  7.78007648e+02 TotEng   = -1.13377830e+04 
+v_Jx     = -6.99476874e-01 v_Jy     = -1.55940318e+00 v_Jz     =  1.59354712e+00 
+---------------- Step    84000 ----- CPU =    616.3102 (sec) ----------------
+Step     =          84000 Time     =  1.88000000e+05 Temp     =  1.49524770e+02 
+PotEng   = -1.21077518e+04 KinEng   =  7.69732428e+02 TotEng   = -1.13380194e+04 
+v_Jx     = -2.84463419e+00 v_Jy     = -2.19043825e+00 v_Jz     =  3.23179448e+00 
+---------------- Step    85000 ----- CPU =    623.6721 (sec) ----------------
+Step     =          85000 Time     =  1.90000000e+05 Temp     =  1.47725722e+02 
+PotEng   = -1.20984509e+04 KinEng   =  7.60471181e+02 TotEng   = -1.13379797e+04 
+v_Jx     = -2.48038737e+00 v_Jy     =  5.16316313e+00 v_Jz     =  1.27782689e+00 
+---------------- Step    86000 ----- CPU =    631.0433 (sec) ----------------
+Step     =          86000 Time     =  1.92000000e+05 Temp     =  1.50202156e+02 
+PotEng   = -1.21111095e+04 KinEng   =  7.73219516e+02 TotEng   = -1.13378899e+04 
+v_Jx     =  6.33873491e-01 v_Jy     =  7.97849307e-02 v_Jz     = -1.83333789e+00 
+---------------- Step    87000 ----- CPU =    638.3774 (sec) ----------------
+Step     =          87000 Time     =  1.94000000e+05 Temp     =  1.47367375e+02 
+PotEng   = -1.20963008e+04 KinEng   =  7.58626462e+02 TotEng   = -1.13376744e+04 
+v_Jx     = -9.30043132e+00 v_Jy     = -1.83133858e+00 v_Jz     = -4.38324568e+00 
+---------------- Step    88000 ----- CPU =    645.7222 (sec) ----------------
+Step     =          88000 Time     =  1.96000000e+05 Temp     =  1.42845596e+02 
+PotEng   = -1.20729322e+04 KinEng   =  7.35348981e+02 TotEng   = -1.13375832e+04 
+v_Jx     =  3.40561894e+00 v_Jy     = -2.55724651e+00 v_Jz     = -2.42221646e+00 
+---------------- Step    89000 ----- CPU =    653.0782 (sec) ----------------
+Step     =          89000 Time     =  1.98000000e+05 Temp     =  1.47654503e+02 
+PotEng   = -1.20975823e+04 KinEng   =  7.60104558e+02 TotEng   = -1.13374777e+04 
+v_Jx     =  1.53401704e-01 v_Jy     =  1.16325816e+00 v_Jz     =  2.33470376e-02 
+---------------- Step    90000 ----- CPU =    660.4266 (sec) ----------------
+Step     =          90000 Time     =  2.00000000e+05 Temp     =  1.48729046e+02 
+PotEng   = -1.21034504e+04 KinEng   =  7.65636149e+02 TotEng   = -1.13378143e+04 
+v_Jx     = -6.48374295e+00 v_Jy     =  1.97929513e+00 v_Jz     = -3.59784662e+00 
+---------------- Step    91000 ----- CPU =    667.7646 (sec) ----------------
+Step     =          91000 Time     =  2.02000000e+05 Temp     =  1.49169191e+02 
+PotEng   = -1.21056024e+04 KinEng   =  7.67901955e+02 TotEng   = -1.13377004e+04 
+v_Jx     = -2.67776615e+00 v_Jy     =  2.30488479e+00 v_Jz     = -6.16563783e+00 
+---------------- Step    92000 ----- CPU =    675.0910 (sec) ----------------
+Step     =          92000 Time     =  2.04000000e+05 Temp     =  1.47624932e+02 
+PotEng   = -1.20973793e+04 KinEng   =  7.59952329e+02 TotEng   = -1.13374270e+04 
+v_Jx     =  2.22659462e+00 v_Jy     =  5.69564664e+00 v_Jz     =  4.19594222e+00 
+---------------- Step    93000 ----- CPU =    682.4207 (sec) ----------------
+Step     =          93000 Time     =  2.06000000e+05 Temp     =  1.49129632e+02 
+PotEng   = -1.21054193e+04 KinEng   =  7.67698312e+02 TotEng   = -1.13377210e+04 
+v_Jx     = -6.25045005e-01 v_Jy     = -9.65464888e-01 v_Jz     =  2.21794362e-01 
+---------------- Step    94000 ----- CPU =    689.7524 (sec) ----------------
+Step     =          94000 Time     =  2.08000000e+05 Temp     =  1.45594990e+02 
+PotEng   = -1.20869438e+04 KinEng   =  7.49502473e+02 TotEng   = -1.13374414e+04 
+v_Jx     =  1.90712999e+00 v_Jy     =  2.92241993e+00 v_Jz     = -5.60711935e+00 
+---------------- Step    95000 ----- CPU =    697.0839 (sec) ----------------
+Step     =          95000 Time     =  2.10000000e+05 Temp     =  1.48621282e+02 
+PotEng   = -1.21025903e+04 KinEng   =  7.65081396e+02 TotEng   = -1.13375089e+04 
+v_Jx     = -5.00806140e+00 v_Jy     =  5.70043912e+00 v_Jz     = -5.28480598e+00 
+---------------- Step    96000 ----- CPU =    704.4017 (sec) ----------------
+Step     =          96000 Time     =  2.12000000e+05 Temp     =  1.48103141e+02 
+PotEng   = -1.21000764e+04 KinEng   =  7.62414080e+02 TotEng   = -1.13376623e+04 
+v_Jx     =  5.83779219e+00 v_Jy     =  1.37638953e+00 v_Jz     = -6.69669922e-01 
+---------------- Step    97000 ----- CPU =    711.7239 (sec) ----------------
+Step     =          97000 Time     =  2.14000000e+05 Temp     =  1.44451226e+02 
+PotEng   = -1.20808418e+04 KinEng   =  7.43614537e+02 TotEng   = -1.13372273e+04 
+v_Jx     = -2.65118221e+00 v_Jy     = -5.30213317e+00 v_Jz     = -2.10648294e+00 
+---------------- Step    98000 ----- CPU =    719.1907 (sec) ----------------
+Step     =          98000 Time     =  2.16000000e+05 Temp     =  1.45970085e+02 
+PotEng   = -1.20890468e+04 KinEng   =  7.51433407e+02 TotEng   = -1.13376134e+04 
+v_Jx     =  3.37158147e+00 v_Jy     = -3.13472687e+00 v_Jz     =  9.65051117e-01 
+---------------- Step    99000 ----- CPU =    726.5182 (sec) ----------------
+Step     =          99000 Time     =  2.18000000e+05 Temp     =  1.50859079e+02 
+PotEng   = -1.21141877e+04 KinEng   =  7.76601260e+02 TotEng   = -1.13375864e+04 
+v_Jx     = -4.68085495e+00 v_Jy     = -4.28346289e-01 v_Jz     =  2.23007213e-01 
+---------------- Step   100000 ----- CPU =    733.8569 (sec) ----------------
+Step     =         100000 Time     =  2.20000000e+05 Temp     =  1.49250132e+02 
+PotEng   = -1.21059138e+04 KinEng   =  7.68318628e+02 TotEng   = -1.13375951e+04 
+v_Jx     = -2.32647676e+00 v_Jy     = -4.30032496e-02 v_Jz     = -6.57472421e+00 
+Loop time of 733.857 on 24 procs for 100000 steps with 2592 atoms
+
+Performance: 23.547 ns/day, 1.019 hours/ns, 136.266 timesteps/s
+99.4% CPU use with 24 MPI tasks x 1 OpenMP threads
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 215.27     | 220.43     | 226.04     |  20.8 | 30.04
+Bond    | 5.4379     | 6.0209     | 6.4577     |   9.7 |  0.82
+Kspace  | 360.82     | 367.69     | 372.99     |  17.7 | 50.10
+Neigh   | 13.796     | 13.845     | 13.906     |   0.8 |  1.89
+Comm    | 17.819     | 19.392     | 22.266     |  26.5 |  2.64
+Output  | 0.086181   | 0.15063    | 0.15453    |   3.5 |  0.02
+Modify  | 103.39     | 103.72     | 104.02     |   1.6 | 14.13
+Other   |            | 2.611      |            |       |  0.36
+
+Nlocal:    108 ave 114 max 98 min
+Histogram: 1 0 2 1 1 5 5 2 4 3
+Nghost:    3244.58 ave 3279 max 3213 min
+Histogram: 2 0 3 5 3 4 2 4 0 1
+Neighs:    24477.5 ave 25735 max 22159 min
+Histogram: 1 0 2 1 2 4 3 3 3 5
+
+Total # of neighbors = 587459
+Ave neighs/atom = 226.643
+Ave special neighs/atom = 2
+Neighbor list builds = 9891
+Dangerous builds = 9797
+
+unfix center
+unfix constrain
+unfix 1
+unfix 2
+write_restart restart.${name}.nve
+write_restart restart.ice_Ih666.nve
+PPPM initialization ...
+  extracting TIP4P info from pair style
+  using 12-bit tables for long-range coulomb (src/kspace.cpp:323)
+  G vector (1/distance) = 0.353717
+  grid = 30 45 45
+  stencil order = 5
+  estimated absolute RMS force accuracy = 0.00243217
+  estimated relative force accuracy = 7.3244e-06
+  using double precision FFTW3
+  3d grid and FFT values/proc = 8712 2700
+undump 2
+
+variable v equal vol
+print "Simulation done with volume: ${v}"
+Simulation done with volume: 25945.0660130565
+print "All done"
+All done
+Total wall time: 0:12:39

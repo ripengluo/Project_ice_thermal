@@ -1,0 +1,2 @@
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+           2806956   bigdata restart6 th_sz_ky  R       6:02      1 cn7364

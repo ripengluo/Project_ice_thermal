@@ -1,0 +1,12 @@
+LAMMPS (09 Jan 2020)
+  using 1 OpenMP thread(s) per MPI task
+variable seed1 equal 46895
+variable seed2 equal 69743
+
+# Initialization
+units		real
+boundary	p p p
+atom_style	full
+variable name index ice_Ih666
+log 		${name}.txt
+log 		ice_Ih666.txt

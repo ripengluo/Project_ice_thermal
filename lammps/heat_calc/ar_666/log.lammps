@@ -1,0 +1,12 @@
+LAMMPS (12 Dec 2018)
+  using 1 OpenMP thread(s) per MPI task
+variable seed1 equal 25568
+variable seed2 equal 19374
+variable name index ar_fcc
+
+# Initialization
+units		real
+boundary	p p p
+atom_style	full
+log 		${name}.txt
+log 		ar_fcc.txt

@@ -1,0 +1,5 @@
+             JOBID PARTITION     NAME     USER ST       TIME  NODES NODELIST(REASON)
+           2817651   bigdata 0.967_20 th_sz_ky  R      37:41      1 cn7725
+           2817145   bigdata 0.939_15 th_sz_ky  R    2:56:47      1 cn7319
+           2815645   bigdata 0.939_20 th_sz_ky  R    6:42:49      1 cn7442
+           2814318   bigdata 0.967_15 th_sz_ky  R   19:29:21      1 cn7629
